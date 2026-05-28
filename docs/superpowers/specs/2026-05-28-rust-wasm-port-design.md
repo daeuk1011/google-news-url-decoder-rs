@@ -19,7 +19,7 @@ to third-party origins.
 - Reuse the exact request shape proven in the Python implementation
   (`new_decoderv3.py`) so that Google's endpoints accept the payload unchanged.
 - Ship one isomorphic build that works in Node.js, Workers, Deno, and Bun.
-- Stay under 100 KB gzip for the published `.wasm` artifact.
+- Stay under 150 KB gzip for the published `.wasm` artifact (renegotiated from initial 100 KB target — see Open Risks).
 
 ## Non-goals
 
@@ -178,7 +178,7 @@ upstream drift early.
 - `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
 - `wasm-pack build --target bundler --release`
 - `node --test test/` (uses the freshly built `pkg/`)
-- Bundle size check: fail if `pkg/*_bg.wasm` > 100 KB gzipped
+- Bundle size check: fail if `pkg/*_bg.wasm` > 150 KB gzipped (renegotiated from 100 KB)
 - Separate weekly workflow runs the E2E suite with `RUN_E2E=1`
 
 ## Open risks
@@ -190,5 +190,7 @@ upstream drift early.
   Decided during implementation based on fixture coverage; not a design-blocking
   question.
 - **Bundle size.** `scraper` pulls in `html5ever` and pushes WASM size above
-  100 KB; `tl` is the lighter default. If both options exceed the budget, the
-  budget is renegotiated rather than the parser being hand-rolled.
+  100 KB; `tl` is the lighter default. Budget renegotiated to 150 KB — the
+  `url + tl + serde_json` baseline lands around 125 KB gzipped, which already
+  exceeds the original 100 KB target. Tightening further would require
+  hand-rolling the URL parser, which is not warranted at this stage.
