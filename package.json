@@ -1,0 +1,45 @@
+{
+  "name": "google-news-url-decoder",
+  "version": "0.1.0",
+  "description": "Decode Google News article share URLs to their original article URL.",
+  "type": "module",
+  "main": "./index.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "workerd": "./index.workerd.mjs",
+      "default": "./index.mjs"
+    }
+  },
+  "files": [
+    "index.mjs",
+    "index.workerd.mjs",
+    "index.d.ts",
+    "lib/decoder.mjs",
+    "pkg/google_news_url_decoder_bg.wasm",
+    "pkg/google_news_url_decoder.js",
+    "pkg/google_news_url_decoder.d.ts",
+    "pkg/google_news_url_decoder_bg.js",
+    "pkg-node/google_news_url_decoder_bg.wasm",
+    "pkg-node/google_news_url_decoder.js",
+    "pkg-node/google_news_url_decoder.d.ts"
+  ],
+  "scripts": {
+    "build:bundler": "wasm-pack build --target bundler --release --out-dir pkg",
+    "build:node": "wasm-pack build --target nodejs --release --out-dir pkg-node",
+    "build": "npm run build:bundler && npm run build:node",
+    "test:unit": "cargo test",
+    "test:int": "node --test test/decode.test.mjs",
+    "test:e2e": "RUN_E2E=1 node --test test/e2e.test.mjs",
+    "test": "npm run test:unit && npm run build && npm run test:int"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daeuk1011/google-news-url-decoder.git"
+  },
+  "license": "MIT"
+}
