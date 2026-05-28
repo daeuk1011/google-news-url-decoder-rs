@@ -21,9 +21,11 @@
     "pkg/google_news_url_decoder.js",
     "pkg/google_news_url_decoder.d.ts",
     "pkg/google_news_url_decoder_bg.js",
+    "pkg/package.json",
     "pkg-node/google_news_url_decoder_bg.wasm",
     "pkg-node/google_news_url_decoder.js",
-    "pkg-node/google_news_url_decoder.d.ts"
+    "pkg-node/google_news_url_decoder.d.ts",
+    "pkg-node/package.json"
   ],
   "scripts": {
     "build:bundler": "wasm-pack build --target bundler --release --out-dir pkg",
