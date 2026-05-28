@@ -37,8 +37,8 @@ pub fn extract_decoding_params(html: &str) -> Option<DecodingParams> {
         let ts = attrs.get("data-n-a-ts").flatten();
         if let (Some(sg), Some(ts)) = (sg, ts) {
             return Some(DecodingParams {
-                signature: sg.as_utf8_str().to_string(),
-                timestamp: ts.as_utf8_str().to_string(),
+                signature: sg.try_as_utf8_str()?.to_string(),
+                timestamp: ts.try_as_utf8_str()?.to_string(),
             });
         }
     }
