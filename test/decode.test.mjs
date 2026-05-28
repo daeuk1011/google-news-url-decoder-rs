@@ -75,3 +75,26 @@ test("invalid input URL → invalid-url", async () => {
     (err) => err instanceof DecodeError && err.kind === "invalid-url",
   );
 });
+
+test("AbortSignal aborts mid-flight → fetch-failed with AbortError cause", async () => {
+  const controller = new AbortController();
+  const fetchMock = async (_url, init) => {
+    return new Promise((_resolve, reject) => {
+      const abortErr = () => {
+        const err = new Error("aborted");
+        err.name = "AbortError";
+        reject(err);
+      };
+      if (init.signal.aborted) {
+        abortErr();
+      } else {
+        init.signal.addEventListener("abort", abortErr);
+      }
+    });
+  };
+  queueMicrotask(() => controller.abort());
+  await assert.rejects(
+    () => decode(VALID_NEWS_URL, { fetch: fetchMock, signal: controller.signal }),
+    (err) => err instanceof DecodeError && err.kind === "fetch-failed",
+  );
+});
