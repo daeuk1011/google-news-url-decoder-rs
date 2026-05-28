@@ -20,6 +20,31 @@ pub fn parse_base64(input: &str) -> Result<String, &'static str> {
     Ok(segments[segments.len() - 1].to_string())
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct DecodingParams {
+    pub signature: String,
+    pub timestamp: String,
+}
+
+pub fn extract_decoding_params(html: &str) -> Option<DecodingParams> {
+    let dom = tl::parse(html, tl::ParserOptions::default()).ok()?;
+    let parser = dom.parser();
+    for handle in dom.query_selector("div[jscontroller]")? {
+        let node = handle.get(parser)?;
+        let tag = node.as_tag()?;
+        let attrs = tag.attributes();
+        let sg = attrs.get("data-n-a-sg").flatten();
+        let ts = attrs.get("data-n-a-ts").flatten();
+        if let (Some(sg), Some(ts)) = (sg, ts) {
+            return Some(DecodingParams {
+                signature: sg.as_utf8_str().to_string(),
+                timestamp: ts.as_utf8_str().to_string(),
+            });
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -49,5 +74,35 @@ mod tests {
     #[test]
     fn rejects_malformed_url() {
         assert!(parse_base64("not a url").is_err());
+    }
+
+    #[test]
+    fn extract_params_returns_attrs_when_present() {
+        let html = r#"
+            <html><body>
+            <c-wiz>
+                <div jscontroller="abc" data-n-a-sg="SIG123" data-n-a-ts="1234567890">x</div>
+            </c-wiz>
+            </body></html>
+        "#;
+        assert_eq!(
+            extract_decoding_params(html),
+            Some(DecodingParams {
+                signature: "SIG123".to_string(),
+                timestamp: "1234567890".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn extract_params_returns_none_when_div_missing() {
+        let html = "<html><body><c-wiz></c-wiz></body></html>";
+        assert!(extract_decoding_params(html).is_none());
+    }
+
+    #[test]
+    fn extract_params_returns_none_when_attrs_missing() {
+        let html = r#"<c-wiz><div jscontroller="abc">no attrs</div></c-wiz>"#;
+        assert!(extract_decoding_params(html).is_none());
     }
 }
