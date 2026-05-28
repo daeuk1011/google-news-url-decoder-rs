@@ -26,6 +26,22 @@ pub struct DecodingParams {
     pub timestamp: String,
 }
 
+pub fn parse_batchexecute_response(body: &str) -> Option<String> {
+    let mut parts = body.split("\n\n");
+    parts.next()?;
+    let second = parts.next()?;
+    let outer: serde_json::Value = serde_json::from_str(second).ok()?;
+    let arr = outer.as_array()?;
+    if arr.len() < 3 {
+        return None;
+    }
+    let first = arr.first()?.as_array()?;
+    let nested_str = first.get(2)?.as_str()?;
+    let inner: serde_json::Value = serde_json::from_str(nested_str).ok()?;
+    let url = inner.as_array()?.get(1)?.as_str()?;
+    Some(url.to_string())
+}
+
 pub fn extract_decoding_params(html: &str) -> Option<DecodingParams> {
     let dom = tl::parse(html, tl::ParserOptions::default()).ok()?;
     let parser = dom.parser();
@@ -104,5 +120,31 @@ mod tests {
     fn extract_params_returns_none_when_attrs_missing() {
         let html = r#"<c-wiz><div jscontroller="abc">no attrs</div></c-wiz>"#;
         assert!(extract_decoding_params(html).is_none());
+    }
+
+    #[test]
+    fn parse_batchexecute_extracts_url() {
+        let body = "ignored-prelude\n\n[[null,null,\"[\\\"x\\\",\\\"https://example.com/article\\\"]\"],\"trail1\",\"trail2\"]";
+        assert_eq!(
+            parse_batchexecute_response(body).unwrap(),
+            "https://example.com/article"
+        );
+    }
+
+    #[test]
+    fn parse_batchexecute_returns_none_on_garbage() {
+        assert!(parse_batchexecute_response("garbage").is_none());
+    }
+
+    #[test]
+    fn parse_batchexecute_returns_none_on_invalid_second_chunk() {
+        assert!(parse_batchexecute_response("a\n\nnot-json").is_none());
+    }
+
+    #[test]
+    fn parse_batchexecute_returns_none_on_unexpected_shape() {
+        // Outer JSON parses, but the inner [0][2] string isn't valid JSON.
+        let body = "a\n\n[[null,null,\"not-json-inside\"],\"x\",\"y\"]";
+        assert!(parse_batchexecute_response(body).is_none());
     }
 }
