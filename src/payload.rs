@@ -13,7 +13,8 @@ mod tests {
     #[test]
     fn payload_is_valid_json_with_expected_envelope() {
         let payload = build_batchexecute_payload("BASE64ID", "SIG123", "9999");
-        let parsed: serde_json::Value = serde_json::from_str(&payload).expect("payload must be valid JSON");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&payload).expect("payload must be valid JSON");
         // Shape: [[["Fbv4je", "<inner json string>"]]]
         let inner = parsed[0][0][1]
             .as_str()
@@ -29,8 +30,8 @@ mod tests {
         let payload = build_batchexecute_payload("B", "S", "1");
         let outer: serde_json::Value = serde_json::from_str(&payload).unwrap();
         let inner_str = outer[0][0][1].as_str().unwrap();
-        let inner: serde_json::Value = serde_json::from_str(inner_str)
-            .expect("inner string must itself be valid JSON");
+        let inner: serde_json::Value =
+            serde_json::from_str(inner_str).expect("inner string must itself be valid JSON");
         assert_eq!(inner[0].as_str(), Some("garturlreq"));
     }
 }

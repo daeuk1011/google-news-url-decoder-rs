@@ -42,7 +42,12 @@ pub fn extract_decoding_params(html: &str) -> Result<DecodingParams, JsValue> {
             signature: p.signature,
             timestamp: p.timestamp,
         })
-        .ok_or_else(|| throw("params-missing", "data-n-a-sg / data-n-a-ts attributes not found"))
+        .ok_or_else(|| {
+            throw(
+                "params-missing",
+                "data-n-a-sg / data-n-a-ts attributes not found",
+            )
+        })
 }
 
 #[wasm_bindgen(js_name = buildBatchexecutePayload)]

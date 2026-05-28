@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: cargo fmt
+        run: cargo fmt --check
+      - name: cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: cargo test
+        run: cargo test
+      - name: wasm-pack build (bundler target, for distribution)
+        run: wasm-pack build --target bundler --release --out-dir pkg
+      - name: wasm-pack build (nodejs target, for tests)
+        run: wasm-pack build --target nodejs --release --out-dir pkg-node
+      - name: bundle size check
+        run: |
+          size=$(gzip -c pkg/google_news_url_decoder_bg.wasm | wc -c)
+          echo "gzipped wasm size: $size bytes"
+          if [ "$size" -gt 102400 ]; then
+            echo "::error::wasm exceeds 100 KB gzipped ($size bytes)"
+            exit 1
+          fi
+      - name: node integration tests
+        run: node --test test/decode.test.mjs
