@@ -1,0 +1,24 @@
+[package]
+name = "google-news-url-decoder"
+version = "0.1.0"
+edition = "2021"
+description = "Decode Google News article share URLs to their original article URL."
+license = "MIT"
+repository = "https://github.com/daeuk1011/google-news-url-decoder"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tl = "0.7"
+url = "2.5"
+urlencoding = "2"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
