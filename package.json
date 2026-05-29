@@ -1,6 +1,9 @@
 {
-  "name": "google-news-url-decoder",
+  "name": "@daeuk1011/google-news-url-decoder",
   "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Decode Google News article share URLs to their original article URL.",
   "type": "module",
   "main": "./index.mjs",

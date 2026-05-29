@@ -7,7 +7,7 @@ Ported from [SSujitX/google-news-url-decoder](https://github.com/SSujitX/google-
 ## Install
 
 ```sh
-npm install google-news-url-decoder
+npm install @daeuk1011/google-news-url-decoder
 ```
 
 Requires a JS runtime with global `fetch`: Node.js 18+, Cloudflare Workers, Deno, Bun.
@@ -17,7 +17,7 @@ Requires a JS runtime with global `fetch`: Node.js 18+, Cloudflare Workers, Deno
 ## Usage
 
 ```js
-import { decode, DecodeError } from "google-news-url-decoder";
+import { decode, DecodeError } from "@daeuk1011/google-news-url-decoder";
 
 try {
   const url = await decode("https://news.google.com/articles/CBMi...");
@@ -38,7 +38,7 @@ isolated: results are returned in input order, each either `{ url, decoded }` or
 `{ url, error }`.
 
 ```js
-import { decodeBatch } from "google-news-url-decoder";
+import { decodeBatch } from "@daeuk1011/google-news-url-decoder";
 
 const results = await decodeBatch(urls, { batchSize: 50, concurrency: 20 });
 
