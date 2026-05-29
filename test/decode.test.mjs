@@ -29,6 +29,17 @@ test("falls back to /rss/articles when /articles fails at the network layer", as
   assert.equal(url, "https://example.com/article");
 });
 
+test("falls back to /rss/articles when /articles is rate-limited (429)", async () => {
+  // Google throttles the non-rss /articles/ path while /rss/articles/ still serves 200.
+  const fetchMock = makeFetchMock([
+    { match: (u) => u.includes("/articles/") && !u.includes("/rss/"), ok: false, status: 429 },
+    { match: (u) => u.includes("/rss/articles/"), text: VALID_HTML },
+    { match: (u) => u.includes("/batchexecute"), text: VALID_BATCH_RESPONSE },
+  ]);
+  const url = await decode(VALID_NEWS_URL, { fetch: fetchMock });
+  assert.equal(url, "https://example.com/article");
+});
+
 test("both /articles and /rss/articles fail → fetch-failed", async () => {
   const fetchMock = makeFetchMock([
     { match: (u) => u.includes("/articles/"), ok: false, status: 503 },

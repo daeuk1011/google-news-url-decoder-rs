@@ -13,7 +13,8 @@ All notable changes to this project are documented here. This project adheres to
   `concurrency` for param-fetch GETs (default 20), plus the usual `fetch`/`headers`/`signal`.
 - `rate-limited` `DecodeError` kind — Google throttling (HTTP 429 or a redirect to its
   `/sorry/` abuse page) is now surfaced distinctly from `fetch-failed` so callers can
-  back off and retry.
+  back off and retry. The `/articles/` → `/rss/articles/` param fallback also triggers
+  on rate-limiting, since Google throttles the two paths independently.
 
 ## [0.1.0]
 
