@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 description = "Decode Google News article share URLs to their original article URL."
 license = "MIT"
-repository = "https://github.com/daeuk1011/google-news-url-decoder"
+repository = "https://github.com/daeuk1011/google-news-url-decoder-rs"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
