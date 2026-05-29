@@ -12,18 +12,25 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Gate the NPM_TOKEN behind a GitHub Environment. Configure required reviewers
+    # (and optionally a wait timer) on the `release` environment in repo settings so
+    # the token is only released after manual approval. Until configured this is a no-op.
+    environment: release
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # fetch-depth: 0 so the branch-ancestry check below can see full history.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install wasm-pack (pinned, from crates.io)
+        run: cargo install wasm-pack --version 0.15.0 --locked
 
       - name: Verify tag matches package.json version
         run: |
@@ -33,6 +40,14 @@ jobs:
           echo "tag=$tag package.json=$pkg"
           if [ "$tag" != "$pkg" ]; then
             echo "::error::tag v$tag does not match package.json version $pkg"
+            exit 1
+          fi
+
+      - name: Verify tagged commit is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tagged commit $GITHUB_SHA is not reachable from origin/main — refusing to publish"
             exit 1
           fi
 
