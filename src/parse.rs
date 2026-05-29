@@ -42,6 +42,48 @@ pub fn parse_batchexecute_response(body: &str) -> Option<String> {
     Some(url.to_string())
 }
 
+/// Parse a multi-RPC batchexecute response into a JSON object mapping each RPC's
+/// index string to its decoded URL, e.g. `{"1":"https://a","2":"https://b"}`.
+/// Result frames look like `["wrb.fr","Fbv4je","<inner>",null,null,null,"<index>"]`
+/// where `<inner>` is `["garturlres","<url>",1]`. Non-`wrb.fr` frames are ignored.
+/// Returns `None` only when the response body is not parseable at all.
+pub fn parse_batchexecute_batch_response(body: &str) -> Option<String> {
+    let mut parts = body.split("\n\n");
+    parts.next()?;
+    let second = parts.next()?;
+    let frames: serde_json::Value = serde_json::from_str(second).ok()?;
+    let mut map = serde_json::Map::new();
+    for frame in frames.as_array()? {
+        let f = match frame.as_array() {
+            Some(f) => f,
+            None => continue,
+        };
+        if f.first().and_then(|v| v.as_str()) != Some("wrb.fr") {
+            continue;
+        }
+        let index = match f.get(6).and_then(|v| v.as_str()) {
+            Some(s) => s.to_string(),
+            None => continue,
+        };
+        let inner_str = match f.get(2).and_then(|v| v.as_str()) {
+            Some(s) => s,
+            None => continue,
+        };
+        let inner: serde_json::Value = match serde_json::from_str(inner_str) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if let Some(url) = inner
+            .as_array()
+            .and_then(|a| a.get(1))
+            .and_then(|v| v.as_str())
+        {
+            map.insert(index, serde_json::Value::String(url.to_string()));
+        }
+    }
+    Some(serde_json::Value::Object(map).to_string())
+}
+
 pub fn extract_decoding_params(html: &str) -> Option<DecodingParams> {
     let dom = tl::parse(html, tl::ParserOptions::default()).ok()?;
     let parser = dom.parser();
@@ -146,5 +188,35 @@ mod tests {
         // Outer JSON parses, but the inner [0][2] string isn't valid JSON.
         let body = "a\n\n[[null,null,\"not-json-inside\"],\"x\",\"y\"]";
         assert!(parse_batchexecute_response(body).is_none());
+    }
+
+    // Mirrors the real batchexecute multi-RPC response shape, with indices
+    // deliberately out of order to prove results are mapped by index, not position.
+    const BATCH_BODY: &str = concat!(
+        ")]}'\n\n",
+        r#"[["wrb.fr","Fbv4je","[\"garturlres\",\"https://b.com/2\",1]",null,null,null,"2"],"#,
+        r#"["wrb.fr","Fbv4je","[\"garturlres\",\"https://a.com/1\",1]",null,null,null,"1"],"#,
+        r#"["di",12],["af.httprm",12,"-123",70]]"#
+    );
+
+    #[test]
+    fn parse_batch_maps_each_result_by_index() {
+        let json = parse_batchexecute_batch_response(BATCH_BODY).expect("parses");
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["1"].as_str(), Some("https://a.com/1"));
+        assert_eq!(v["2"].as_str(), Some("https://b.com/2"));
+    }
+
+    #[test]
+    fn parse_batch_ignores_non_result_frames() {
+        let json = parse_batchexecute_batch_response(BATCH_BODY).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        // Only the two wrb.fr frames produce entries; di / af.httprm are skipped.
+        assert_eq!(v.as_object().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn parse_batch_returns_none_on_garbage() {
+        assert!(parse_batchexecute_batch_response("garbage").is_none());
     }
 }

@@ -1,6 +1,6 @@
 import * as wasm from "./pkg/google_news_url_decoder.js";
 import { makeDecoder } from "./lib/decoder.mjs";
 
-const { decode, DecodeError } = makeDecoder(wasm);
+const { decode, decodeBatch, DecodeError } = makeDecoder(wasm);
 
-export { decode, DecodeError };
+export { decode, decodeBatch, DecodeError };

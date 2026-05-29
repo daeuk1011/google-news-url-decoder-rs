@@ -29,6 +29,28 @@ try {
 }
 ```
 
+## Decoding many URLs
+
+`decodeBatch` decodes a list of URLs and collapses the final decode step into batched
+`batchexecute` POSTs — one request per `batchSize` URLs instead of one per URL. This
+sharply cuts the request volume on the rate-limited endpoint. Per-URL failures are
+isolated: results are returned in input order, each either `{ url, decoded }` or
+`{ url, error }`.
+
+```js
+import { decodeBatch } from "google-news-url-decoder";
+
+const results = await decodeBatch(urls, { batchSize: 50, concurrency: 20 });
+
+for (const r of results) {
+  if (r.decoded) console.log(r.decoded);
+  else console.error(r.url, r.error.kind);
+}
+```
+
+> A per-article params GET is still required for each URL (the signature is per-article),
+> so at scale you still want a rotating proxy pool — batching only reduces the POST volume.
+
 ## Options
 
 ```ts
@@ -36,6 +58,12 @@ decode(url, {
   fetch,    // custom fetch implementation (default: globalThis.fetch)
   headers,  // extra headers (merged over default User-Agent)
   signal,   // AbortSignal forwarded to every fetch call
+});
+
+decodeBatch(urls, {
+  fetch, headers, signal,  // same as decode
+  batchSize,  // URLs per batchexecute POST (default 50; server tolerates 150+)
+  concurrency, // max concurrent param GETs in flight (default 20)
 });
 ```
 
@@ -57,6 +85,7 @@ All failures throw `DecodeError`. Branch on `err.kind`:
 |---|---|
 | `invalid-url` | Input is not a recognized Google News article URL. |
 | `fetch-failed` | A `fetch` call rejected, returned a non-2xx status, or its body could not be read. |
+| `rate-limited` | Google throttled the request (HTTP 429 or a redirect to its `/sorry/` abuse page). Back off and retry, ideally from a different IP. |
 | `params-missing` | Google returned HTML without the expected `data-n-a-sg` / `data-n-a-ts` attributes. |
 | `parse-failed` | The `batchexecute` response did not match the expected nested-JSON shape (likely an upstream format change). |
 

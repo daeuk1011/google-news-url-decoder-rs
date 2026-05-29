@@ -10,6 +10,7 @@ export interface DecodeOptions {
 export type DecodeErrorKind =
   | "invalid-url"
   | "fetch-failed"
+  | "rate-limited"
   | "params-missing"
   | "parse-failed";
 
@@ -20,3 +21,26 @@ export class DecodeError extends Error {
 }
 
 export function decode(url: string, opts?: DecodeOptions): Promise<string>;
+
+export interface DecodeBatchOptions extends DecodeOptions {
+  /** Max URLs per batchexecute POST. Server tolerates 150+; default 50. */
+  batchSize?: number;
+  /** Max concurrent param-fetch GETs in flight. Default 20. */
+  concurrency?: number;
+}
+
+/** Per-URL outcome, aligned to the input array order. */
+export type BatchResult =
+  | { url: string; decoded: string }
+  | { url: string; error: DecodeError };
+
+/**
+ * Decode many Google News URLs, collapsing the final decode step into batched
+ * batchexecute POSTs (`batchSize` URLs per request). Per-URL failures are isolated:
+ * a single bad URL yields an `error` entry without affecting the others. Results are
+ * returned in the same order as `urls`.
+ */
+export function decodeBatch(
+  urls: string[],
+  opts?: DecodeBatchOptions,
+): Promise<BatchResult[]>;

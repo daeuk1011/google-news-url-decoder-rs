@@ -1,6 +1,6 @@
 {
   "name": "google-news-url-decoder",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Decode Google News article share URLs to their original article URL.",
   "type": "module",
   "main": "./index.mjs",
@@ -32,7 +32,7 @@
     "build:node": "wasm-pack build --target nodejs --release --out-dir pkg-node",
     "build": "npm run build:bundler && npm run build:node",
     "test:unit": "cargo test",
-    "test:int": "node --test test/decode.test.mjs",
+    "test:int": "node --test test/decode.test.mjs test/batch.test.mjs",
     "test:e2e": "RUN_E2E=1 node --test test/e2e.test.mjs",
     "test": "npm run test:unit && npm run build && npm run test:int"
   },
@@ -41,7 +41,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/daeuk1011/google-news-url-decoder.git"
+    "url": "git+https://github.com/daeuk1011/google-news-url-decoder-rs.git"
   },
   "license": "MIT"
 }

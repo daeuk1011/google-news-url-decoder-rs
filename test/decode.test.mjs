@@ -29,6 +29,17 @@ test("falls back to /rss/articles when /articles fails at the network layer", as
   assert.equal(url, "https://example.com/article");
 });
 
+test("falls back to /rss/articles when /articles is rate-limited (429)", async () => {
+  // Google throttles the non-rss /articles/ path while /rss/articles/ still serves 200.
+  const fetchMock = makeFetchMock([
+    { match: (u) => u.includes("/articles/") && !u.includes("/rss/"), ok: false, status: 429 },
+    { match: (u) => u.includes("/rss/articles/"), text: VALID_HTML },
+    { match: (u) => u.includes("/batchexecute"), text: VALID_BATCH_RESPONSE },
+  ]);
+  const url = await decode(VALID_NEWS_URL, { fetch: fetchMock });
+  assert.equal(url, "https://example.com/article");
+});
+
 test("both /articles and /rss/articles fail → fetch-failed", async () => {
   const fetchMock = makeFetchMock([
     { match: (u) => u.includes("/articles/"), ok: false, status: 503 },
@@ -56,6 +67,29 @@ test("/articles returns 200 but HTML has no params → params-missing (no fallba
     (err) => err instanceof DecodeError && err.kind === "params-missing",
   );
   assert.equal(rssCalls, 0, "RSS fallback must not be invoked when primary succeeded but lacked attrs");
+});
+
+test("429 response → rate-limited (distinct from fetch-failed)", async () => {
+  const fetchMock = makeFetchMock([
+    { match: (u) => u.includes("/articles/"), text: VALID_HTML },
+    { match: (u) => u.includes("/batchexecute"), ok: false, status: 429 },
+  ]);
+  await assert.rejects(
+    () => decode(VALID_NEWS_URL, { fetch: fetchMock }),
+    (err) => err instanceof DecodeError && err.kind === "rate-limited",
+  );
+});
+
+test("redirect to /sorry/ → rate-limited", async () => {
+  const fetchMock = async (u) => {
+    if (u.includes("/articles/")) return { ok: true, status: 200, text: async () => VALID_HTML };
+    // Google's abuse page: fetch followed the redirect, status looks ok but url is /sorry/
+    return { ok: true, status: 200, url: "https://www.google.com/sorry/index?continue=...", text: async () => "" };
+  };
+  await assert.rejects(
+    () => decode(VALID_NEWS_URL, { fetch: fetchMock }),
+    (err) => err instanceof DecodeError && err.kind === "rate-limited",
+  );
 });
 
 test("batchexecute returns malformed body → parse-failed", async () => {
