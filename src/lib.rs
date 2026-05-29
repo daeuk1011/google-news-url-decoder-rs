@@ -60,3 +60,18 @@ pub fn parse_batchexecute_response(body: &str) -> Result<String, JsValue> {
     parse::parse_batchexecute_response(body)
         .ok_or_else(|| throw("parse-failed", "could not parse batchexecute response"))
 }
+
+#[wasm_bindgen(js_name = buildBatchexecuteBatchPayload)]
+pub fn build_batchexecute_batch_payload(items_json: &str) -> Result<String, JsValue> {
+    payload::build_batchexecute_batch_payload(items_json).map_err(|msg| throw("invalid-url", msg))
+}
+
+#[wasm_bindgen(js_name = parseBatchexecuteBatchResponse)]
+pub fn parse_batchexecute_batch_response(body: &str) -> Result<String, JsValue> {
+    parse::parse_batchexecute_batch_response(body).ok_or_else(|| {
+        throw(
+            "parse-failed",
+            "could not parse batch batchexecute response",
+        )
+    })
+}

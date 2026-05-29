@@ -58,6 +58,29 @@ test("/articles returns 200 but HTML has no params → params-missing (no fallba
   assert.equal(rssCalls, 0, "RSS fallback must not be invoked when primary succeeded but lacked attrs");
 });
 
+test("429 response → rate-limited (distinct from fetch-failed)", async () => {
+  const fetchMock = makeFetchMock([
+    { match: (u) => u.includes("/articles/"), text: VALID_HTML },
+    { match: (u) => u.includes("/batchexecute"), ok: false, status: 429 },
+  ]);
+  await assert.rejects(
+    () => decode(VALID_NEWS_URL, { fetch: fetchMock }),
+    (err) => err instanceof DecodeError && err.kind === "rate-limited",
+  );
+});
+
+test("redirect to /sorry/ → rate-limited", async () => {
+  const fetchMock = async (u) => {
+    if (u.includes("/articles/")) return { ok: true, status: 200, text: async () => VALID_HTML };
+    // Google's abuse page: fetch followed the redirect, status looks ok but url is /sorry/
+    return { ok: true, status: 200, url: "https://www.google.com/sorry/index?continue=...", text: async () => "" };
+  };
+  await assert.rejects(
+    () => decode(VALID_NEWS_URL, { fetch: fetchMock }),
+    (err) => err instanceof DecodeError && err.kind === "rate-limited",
+  );
+});
+
 test("batchexecute returns malformed body → parse-failed", async () => {
   const fetchMock = makeFetchMock([
     { match: (u) => u.includes("/articles/"), text: VALID_HTML },

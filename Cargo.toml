@@ -1,6 +1,6 @@
 [package]
 name = "google-news-url-decoder"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Decode Google News article share URLs to their original article URL."
 license = "MIT"
