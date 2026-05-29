@@ -1,15 +1,29 @@
-use url::Url;
-
 pub fn parse_base64(input: &str) -> Result<String, &'static str> {
-    let url = Url::parse(input).map_err(|_| "invalid url")?;
-    if url.host_str() != Some("news.google.com") {
+    // Lightweight URL parse — avoids pulling in the `url` crate (and its large IDNA
+    // unicode tables) just to read the host and path of a news.google.com URL.
+    let after_scheme = input
+        .split_once("://")
+        .map(|(_, rest)| rest)
+        .ok_or("invalid url")?;
+    let host_end = after_scheme
+        .find(['/', '?', '#'])
+        .unwrap_or(after_scheme.len());
+    // Strip optional userinfo and port before comparing the host.
+    let host = after_scheme[..host_end]
+        .rsplit('@')
+        .next()
+        .unwrap_or("")
+        .split(':')
+        .next()
+        .unwrap_or("");
+    if !host.eq_ignore_ascii_case("news.google.com") {
         return Err("not a news.google.com url");
     }
-    let segments: Vec<&str> = url
-        .path_segments()
-        .ok_or("no path segments")?
-        .filter(|s| !s.is_empty())
-        .collect();
+    let path = after_scheme[host_end..]
+        .split(['?', '#'])
+        .next()
+        .unwrap_or("");
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     if segments.len() < 2 {
         return Err("path too short");
     }
@@ -84,23 +98,25 @@ pub fn parse_batchexecute_batch_response(body: &str) -> Option<String> {
     Some(serde_json::Value::Object(map).to_string())
 }
 
+fn attr_value<'a>(html: &'a str, attr: &str) -> Option<&'a str> {
+    // Find `attr="..."` and return the double-quoted value. Avoids pulling in a full
+    // HTML parser just to read two attributes off the c-wiz element.
+    let mut needle = String::with_capacity(attr.len() + 2);
+    needle.push_str(attr);
+    needle.push_str("=\"");
+    let start = html.find(&needle)? + needle.len();
+    let rest = &html[start..];
+    let end = rest.find('"')?;
+    Some(&rest[..end])
+}
+
 pub fn extract_decoding_params(html: &str) -> Option<DecodingParams> {
-    let dom = tl::parse(html, tl::ParserOptions::default()).ok()?;
-    let parser = dom.parser();
-    for handle in dom.query_selector("div[jscontroller]")? {
-        let node = handle.get(parser)?;
-        let tag = node.as_tag()?;
-        let attrs = tag.attributes();
-        let sg = attrs.get("data-n-a-sg").flatten();
-        let ts = attrs.get("data-n-a-ts").flatten();
-        if let (Some(sg), Some(ts)) = (sg, ts) {
-            return Some(DecodingParams {
-                signature: sg.try_as_utf8_str()?.to_string(),
-                timestamp: ts.try_as_utf8_str()?.to_string(),
-            });
-        }
-    }
-    None
+    let signature = attr_value(html, "data-n-a-sg")?.to_string();
+    let timestamp = attr_value(html, "data-n-a-ts")?.to_string();
+    Some(DecodingParams {
+        signature,
+        timestamp,
+    })
 }
 
 #[cfg(test)]
