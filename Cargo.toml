@@ -1,6 +1,6 @@
 [package]
 name = "google-news-url-decoder"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Decode Google News article share URLs to their original article URL."
 license = "MIT"
@@ -14,9 +14,6 @@ wasm-bindgen = "0.2"
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tl = "0.7"
-url = "2.5"
-urlencoding = "2"
 
 [profile.release]
 opt-level = "z"
