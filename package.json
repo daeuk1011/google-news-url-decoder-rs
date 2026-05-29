@@ -1,6 +1,6 @@
 {
   "name": "@daeuk1011/google-news-url-decoder",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publishConfig": {
     "access": "public"
   },
@@ -20,6 +20,8 @@
     "index.workerd.mjs",
     "index.d.ts",
     "lib/decoder.mjs",
+    "CHANGELOG.md",
+    "LICENSE",
     "pkg/google_news_url_decoder_bg.wasm",
     "pkg/google_news_url_decoder.js",
     "pkg/google_news_url_decoder.d.ts",
