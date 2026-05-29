@@ -34,14 +34,12 @@ jobs:
         run: |
           size=$(gzip -c pkg/google_news_url_decoder_bg.wasm | wc -c)
           echo "gzipped wasm size: $size bytes"
-          # Budget renegotiated from 100 KB → 150 KB after observing that
-          # url + tl + serde_json baseline lands around 125 KB. Tightening
-          # further would require swapping out url for hand-rolled parsing.
-          # See docs/superpowers/specs/2026-05-28-rust-wasm-port-design.md
-          # (Open Risk: Bundle size).
-          if [ "$size" -gt 153600 ]; then
-            echo "::error::wasm exceeds 150 KB gzipped ($size bytes)"
+          # Budget tightened to 80 KB after dropping the url + tl crates in 0.2.1
+          # (hand-rolled URL/attribute parsing). The slim baseline is ~58 KB gzipped;
+          # 80 KB leaves headroom while catching dependency-bloat regressions.
+          if [ "$size" -gt 81920 ]; then
+            echo "::error::wasm exceeds 80 KB gzipped ($size bytes)"
             exit 1
           fi
       - name: node integration tests
-        run: node --test test/decode.test.mjs
+        run: npm run test:int
